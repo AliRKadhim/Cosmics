@@ -46,7 +46,7 @@ public class QuestlineFetcher {
     private static final Set<Integer> expiredQuests = new HashSet<>();
     private static final Map<Integer, List<Integer>> questDependencies = new HashMap<>();
     private static final Set<Integer> nonScriptedQuests = new HashSet<>();
-    private static final Set<Integer> skillObtainableNonScriptedQuests = new HashSet<>();
+    private static final Set<Integer> skillNonScriptedQuests = new HashSet<>();
 
     private static PrintWriter printWriter = null;
     private static InputStreamReader fileReader = null;
@@ -262,7 +262,7 @@ public class QuestlineFetcher {
             solvedQuests.add(questid);
 
             if (nonScriptedQuests.contains(questid)) {
-                skillObtainableNonScriptedQuests.add(questid);
+                skillNonScriptedQuests.add(questid);
                 nonScriptedQuests.remove(questid);
             }
 
@@ -289,9 +289,9 @@ public class QuestlineFetcher {
     }
 
     private static void printReportFileResults() {
-        if (!skillObtainableNonScriptedQuests.isEmpty()) {
+        if (!skillNonScriptedQuests.isEmpty()) {
             printWriter.println("SKILL-RELATED NON-SCRIPTED QUESTS");
-            for (Integer nsq : getSortedListEntries(skillObtainableNonScriptedQuests)) {
+            for (Integer nsq : getSortedListEntries(skillNonScriptedQuests)) {
                 printWriter.println("  " + nsq + (expiredQuests.contains(nsq) ? " EXPIRED" : ""));
             }
 

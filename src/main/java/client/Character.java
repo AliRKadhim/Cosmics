@@ -7676,128 +7676,137 @@ public class Character extends AbstractCharacterObject {
         localwatk += equipwatk;
     }
 
-    private void reapplyLocalStats() {
+    private void lockAll() {
         effLock.lock();
         chrLock.lock();
         statWlock.lock();
-        try {
-            localmaxhp = getMaxHp();
-            localmaxmp = getMaxMp();
-            localdex = getDex();
-            localint_ = getInt();
-            localstr = getStr();
-            localluk = getLuk();
-            localmagic = localint_;
-            localwatk = 0;
-            localchairrate = -1;
+    }
 
-            recalcEquipStats();
+    private void unlockAll() {
+        statWlock.unlock();
+        chrLock.unlock();
+        effLock.unlock();
+    }
 
-            localmagic = Math.min(localmagic, 2000);
+    private void recalculateLocalStats() {
+        localmaxhp = getMaxHp();
+        localmaxmp = getMaxMp();
+        localdex = getDex();
+        localint_ = getInt();
+        localstr = getStr();
+        localluk = getLuk();
+        localmagic = localint_;
+        localwatk = 0;
+        localchairrate = -1;
+    }
 
-            Integer hbhp = getBuffedValue(BuffStat.HYPERBODYHP);
-            if (hbhp != null) {
-                localmaxhp += (hbhp.doubleValue() / 100) * localmaxhp;
+    private void applyBuffs() {
+        Integer hbhp = getBuffedValue(BuffStat.HYPERBODYHP);
+        if (hbhp != null) {
+            localmaxhp += (hbhp.doubleValue() / 100) * localmaxhp;
+        }
+        Integer hbmp = getBuffedValue(BuffStat.HYPERBODYMP);
+        if (hbmp != null) {
+            localmaxmp += (hbmp.doubleValue() / 100) * localmaxmp;
+        }
+
+        localmaxhp = Math.min(30000, localmaxhp);
+        localmaxmp = Math.min(30000, localmaxmp);
+
+        StatEffect combo = getBuffEffect(BuffStat.ARAN_COMBO);
+        if (combo != null) {
+            localwatk += combo.getX();
+        }
+
+        if (energybar == 15000) {
+            Skill energycharge = isCygnus() ? SkillFactory.getSkill(ThunderBreaker.ENERGY_CHARGE) : SkillFactory.getSkill(Marauder.ENERGY_CHARGE);
+            StatEffect ceffect = energycharge.getEffect(getSkillLevel(energycharge));
+            localwatk += ceffect.getWatk();
+        }
+
+        Integer mwarr = getBuffedValue(BuffStat.MAPLE_WARRIOR);
+        if (mwarr != null) {
+            localstr += getStr() * mwarr / 100;
+            localdex += getDex() * mwarr / 100;
+            localint_ += getInt() * mwarr / 100;
+            localluk += getLuk() * mwarr / 100;
+        }
+
+        Integer watkbuff = getBuffedValue(BuffStat.WATK);
+        if (watkbuff != null) {
+            localwatk += watkbuff.intValue();
+        }
+        Integer matkbuff = getBuffedValue(BuffStat.MATK);
+        if (matkbuff != null) {
+            localmagic += matkbuff.intValue();
+        }
+
+        Integer blessing = getSkillLevel(10000000 * getJobType() + 12);
+        if (blessing > 0) {
+            localwatk += blessing;
+            localmagic += blessing * 2;
+        }
+    }
+
+    private void calculateWeaponAttack() {
+        if (job.isA(Job.BOWMAN)) {
+            Skill expert = null;
+            if (job.isA(Job.MARKSMAN)) {
+                expert = SkillFactory.getSkill(3220004);
+            } else if (job.isA(Job.BOWMASTER)) {
+                expert = SkillFactory.getSkill(3120005);
             }
-            Integer hbmp = getBuffedValue(BuffStat.HYPERBODYMP);
-            if (hbmp != null) {
-                localmaxmp += (hbmp.doubleValue() / 100) * localmaxmp;
-            }
-
-            localmaxhp = Math.min(30000, localmaxhp);
-            localmaxmp = Math.min(30000, localmaxmp);
-
-            StatEffect combo = getBuffEffect(BuffStat.ARAN_COMBO);
-            if (combo != null) {
-                localwatk += combo.getX();
-            }
-
-            if (energybar == 15000) {
-                Skill energycharge = isCygnus() ? SkillFactory.getSkill(ThunderBreaker.ENERGY_CHARGE) : SkillFactory.getSkill(Marauder.ENERGY_CHARGE);
-                StatEffect ceffect = energycharge.getEffect(getSkillLevel(energycharge));
-                localwatk += ceffect.getWatk();
-            }
-
-            Integer mwarr = getBuffedValue(BuffStat.MAPLE_WARRIOR);
-            if (mwarr != null) {
-                localstr += getStr() * mwarr / 100;
-                localdex += getDex() * mwarr / 100;
-                localint_ += getInt() * mwarr / 100;
-                localluk += getLuk() * mwarr / 100;
-            }
-            if (job.isA(Job.BOWMAN)) {
-                Skill expert = null;
-                if (job.isA(Job.MARKSMAN)) {
-                    expert = SkillFactory.getSkill(3220004);
-                } else if (job.isA(Job.BOWMASTER)) {
-                    expert = SkillFactory.getSkill(3120005);
+            if (expert != null) {
+                int boostLevel = getSkillLevel(expert);
+                if (boostLevel > 0) {
+                    localwatk += expert.getEffect(boostLevel).getX();
                 }
-                if (expert != null) {
-                    int boostLevel = getSkillLevel(expert);
-                    if (boostLevel > 0) {
-                        localwatk += expert.getEffect(boostLevel).getX();
-                    }
-                }
             }
+        }
 
-            Integer watkbuff = getBuffedValue(BuffStat.WATK);
-            if (watkbuff != null) {
-                localwatk += watkbuff.intValue();
-            }
-            Integer matkbuff = getBuffedValue(BuffStat.MATK);
-            if (matkbuff != null) {
-                localmagic += matkbuff.intValue();
-            }
-
-            /*
-            Integer speedbuff = getBuffedValue(BuffStat.SPEED);
-            if (speedbuff != null) {
-                localspeed += speedbuff.intValue();
-            }
-            Integer jumpbuff = getBuffedValue(BuffStat.JUMP);
-            if (jumpbuff != null) {
-                localjump += jumpbuff.intValue();
-            }
-            */
-
-            Integer blessing = getSkillLevel(10000000 * getJobType() + 12);
-            if (blessing > 0) {
-                localwatk += blessing;
-                localmagic += blessing * 2;
-            }
-
-            if (job.isA(Job.THIEF) || job.isA(Job.BOWMAN) || job.isA(Job.PIRATE) || job.isA(Job.NIGHTWALKER1) || job.isA(Job.WINDARCHER1)) {
-                Item weapon_item = getInventory(InventoryType.EQUIPPED).getItem((short) -11);
-                if (weapon_item != null) {
-                    ItemInformationProvider ii = ItemInformationProvider.getInstance();
-                    WeaponType weapon = ii.getWeaponType(weapon_item.getItemId());
-                    boolean bow = weapon == WeaponType.BOW;
-                    boolean crossbow = weapon == WeaponType.CROSSBOW;
-                    boolean claw = weapon == WeaponType.CLAW;
-                    boolean gun = weapon == WeaponType.GUN;
-                    if (bow || crossbow || claw || gun) {
-                        // Also calc stars into this.
-                        Inventory inv = getInventory(InventoryType.USE);
-                        for (short i = 1; i <= inv.getSlotLimit(); i++) {
-                            Item item = inv.getItem(i);
-                            if (item != null) {
-                                if ((claw && ItemConstants.isThrowingStar(item.getItemId())) || (gun && ItemConstants.isBullet(item.getItemId())) || (bow && ItemConstants.isArrowForBow(item.getItemId())) || (crossbow && ItemConstants.isArrowForCrossBow(item.getItemId()))) {
-                                    if (item.getQuantity() > 0) {
-                                        // Finally there!
-                                        localwatk += ii.getWatkForProjectile(item.getItemId());
-                                        break;
-                                    }
+        if (job.isA(Job.THIEF) || job.isA(Job.BOWMAN) || job.isA(Job.PIRATE) || job.isA(Job.NIGHTWALKER1) || job.isA(Job.WINDARCHER1)) {
+            Item weapon_item = getInventory(InventoryType.EQUIPPED).getItem((short) -11);
+            if (weapon_item != null) {
+                ItemInformationProvider ii = ItemInformationProvider.getInstance();
+                WeaponType weapon = ii.getWeaponType(weapon_item.getItemId());
+                boolean bow = weapon == WeaponType.BOW;
+                boolean crossbow = weapon == WeaponType.CROSSBOW;
+                boolean claw = weapon == WeaponType.CLAW;
+                boolean gun = weapon == WeaponType.GUN;
+                if (bow || crossbow || claw || gun) {
+                    Inventory inv = getInventory(InventoryType.USE);
+                    for (short i = 1; i <= inv.getSlotLimit(); i++) {
+                        Item item = inv.getItem(i);
+                        if (item != null) {
+                            if ((claw && ItemConstants.isThrowingStar(item.getItemId())) || (gun && ItemConstants.isBullet(item.getItemId())) || (bow && ItemConstants.isArrowForBow(item.getItemId())) || (crossbow && ItemConstants.isArrowForCrossBow(item.getItemId()))) {
+                                if (item.getQuantity() > 0) {
+                                    localwatk += ii.getWatkForProjectile(item.getItemId());
+                                    break;
                                 }
                             }
                         }
                     }
                 }
-                // Add throwing stars to dmg.
             }
+        }
+    }
+
+
+
+
+    private void reapplyLocalStats() {
+        lockAll();
+        try {
+            recalculateLocalStats();
+            recalcEquipStats();
+
+            localmagic = Math.min(localmagic, 2000);
+
+            applyBuffs();
+
+            calculateWeaponAttack();
         } finally {
-            statWlock.unlock();
-            chrLock.unlock();
-            effLock.unlock();
+            unlockAll();
         }
     }
 

@@ -687,7 +687,15 @@ public abstract class AbstractCharacterObject extends AbstractAnimatedMapObject 
             }
 
             int newAp = remainingAp - apUsed;
-            updateStrDexIntLuk(newStr, newDex, newInt, newLuk, newAp);
+            CharacterStats stats = new CharacterStats.Builder()
+                    .setStr(newStr)
+                    .setDex(newDex)
+                    .setInt(newInt)
+                    .setLuk(newLuk)
+                    .setRemainingAp(newAp)
+                    .build();
+
+            updateStrDexIntLuk(stats);
             return true;
         } finally {
             statWlock.unlock();
@@ -696,7 +704,15 @@ public abstract class AbstractCharacterObject extends AbstractAnimatedMapObject 
     }
 
     public void updateStrDexIntLuk(int x) {
-        updateStrDexIntLuk(x, x, x, x, -1);
+        CharacterStats stats = new CharacterStats.Builder()
+                .setStr(x)
+                .setDex(x)
+                .setInt(x)
+                .setLuk(x)
+                .setRemainingAp(-1)
+                .build();
+
+        updateStrDexIntLuk(stats);
     }
 
     public void changeRemainingAp(int x, boolean silent) {
@@ -721,8 +737,8 @@ public abstract class AbstractCharacterObject extends AbstractAnimatedMapObject 
         }
     }
 
-    protected void updateStrDexIntLuk(int str, int dex, int int_, int luk, int remainingAp) {
-        changeStrDexIntLuk(str, dex, int_, luk, remainingAp, false);
+    protected void updateStrDexIntLuk(CharacterStats stats) {
+        changeStrDexIntLuk(stats.getStr(), stats.getDex(), stats.getInt_(), stats.getLuk(), stats.getRemainingAp(), false);
     }
 
     private void changeStrDexIntLuk(Integer str, Integer dex, Integer int_, Integer luk, int remainingAp, boolean silent) {
